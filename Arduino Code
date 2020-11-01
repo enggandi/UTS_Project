@@ -1,0 +1,60 @@
+#include <Arduino.h>
+#include <DHT.h>
+#include <Adafruit_Sensor.h>
+#include <ESP8266WiFi.h>
+#include <BlynkSimpleEsp8266.h>
+
+int red=5,green=16,dht=2,thCahaya=2050,thSuhu=50;
+float temperatur=0.0,adc=0,lux=0;
+bool isOn=false;
+DHT suhu(dht, DHT11);
+WidgetLED redLed(V7),greenLed(V6);
+
+void setup() {
+  Serial.begin(9600);
+  Blynk.begin("h5JLYG8Y0o43AOjDqHR4jyEB99pvpyeX","sotomie","kuahnyasedep","192.168.137.1",8080);
+  pinMode(dht,INPUT_PULLUP);
+  pinMode(A0,INPUT);
+  pinMode(red,OUTPUT);
+  pinMode(green,OUTPUT);
+  suhu.begin();
+}
+
+void loop() {
+  Blynk.run();
+  BLYNK_WRITE(V4);
+  BLYNK_WRITE(V5);
+  BLYNK_WRITE(V8);
+  if(isOn){
+    adc=analogRead(A0)*4;
+    lux=(adc*0.009768)+10;
+    float t=suhu.readTemperature();
+    if(!isnan(t)){
+      temperatur=t;
+    }
+    if(adc>thCahaya||temperatur>thSuhu){
+      digitalWrite(red,HIGH);redLed.on();
+      digitalWrite(green,LOW);greenLed.off();
+    }
+    else{
+      digitalWrite(red,LOW);redLed.off();
+      digitalWrite(green,HIGH);greenLed.on();
+    }
+    Blynk.virtualWrite(V0,lux);
+    Blynk.virtualWrite(V1,temperatur);
+    Blynk.virtualWrite(V2,(int)lux);
+    Blynk.virtualWrite(V3,(int)temperatur);
+  }
+}
+
+BLYNK_WRITE(V4){
+  thCahaya = param.asInt();
+}
+
+BLYNK_WRITE(V5){
+  thSuhu = param.asInt();
+}
+
+BLYNK_WRITE(V8){
+  isOn = param.asInt();
+}
